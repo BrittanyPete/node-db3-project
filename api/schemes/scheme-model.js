@@ -1,4 +1,12 @@
+const db = require('../../data/db-config');
+
 function find() { // EXERCISE A
+  return db('schemes as sc')
+    .leftJoin('steps as st', 'sc.scheme_id', 'st.scheme_id')
+    .select('sc.scheme_id', 'scheme_name')
+    .count('st.step_id as number_of_steps')
+    .orderBy('sc.scheme_id')
+    .groupBy('sc.scheme_id')
   /*
     1A- Study the SQL query below running it in SQLite Studio against `data/schemes.db3`.
     What happens if we change from a LEFT join to an INNER join?
@@ -17,13 +25,40 @@ function find() { // EXERCISE A
   */
 }
 
-function findById(scheme_id) { // EXERCISE B
+async function findById(scheme_id) { // EXERCISE B
+  const result = await db('schemes as sc')
+  .leftJoin('steps as st', 'sc.scheme_id', 'st.scheme_id')
+  .select('sc.scheme_name', 'st.step_id', 'st.step_number', 'instructions', 'sc.scheme_id')
+  .where('sc.scheme_id', scheme_id)
+  .orderBy('st.step_number')
+
+  if(result.length === 0) {
+    return null;
+  }
+
+  const scheme = {
+    scheme_id: result[0].scheme_id,
+    scheme_name: result[0].scheme_name,
+    steps: []
+  };
+
+  if (result[0].step_id === null) {
+    return scheme;
+  }
+
+  for(let steps of result) {
+    scheme.steps.push({
+      step_id: steps.step_id,
+      step_number: steps.step_number,
+      instructions: steps.instructions
+    })
+  }
+
+  return scheme;
   /*
     1B- Study the SQL query below running it in SQLite Studio against `data/schemes.db3`:
 
-      SELECT
-          sc.scheme_name,
-          st.*
+      SELECT sc.scheme_name, st.*
       FROM schemes as sc
       LEFT JOIN steps as st
           ON sc.scheme_id = st.scheme_id
@@ -86,6 +121,11 @@ function findById(scheme_id) { // EXERCISE B
 }
 
 function findSteps(scheme_id) { // EXERCISE C
+  return db('steps as st')
+    .join('schemes as sc','sc.scheme_id', 'st.scheme_id')
+    .select('st.step_id', 'st.step_number', 'instructions', 'sc.scheme_name')
+    .where('sc.scheme_id', scheme_id)
+    .orderBy('st.step_number')
   /*
     1C- Build a query in Knex that returns the following data.
     The steps should be sorted by step_number, and the array
